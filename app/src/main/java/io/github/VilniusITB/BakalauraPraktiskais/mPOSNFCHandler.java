@@ -1,4 +1,4 @@
-package io.github.VilniusITB.terminal;
+package io.github.VilniusITB.BakalauraPraktiskais;
 
 import com.pro100svitlo.creditCardNfcReader.CardNfcAsyncTask;
 import com.pro100svitlo.creditCardNfcReader.enums.CardPaymentType;

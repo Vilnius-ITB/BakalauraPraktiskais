@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'io.github.VilniusITB.terminal'
+    namespace 'io.github.VilniusITB.BakalauraPraktiskais'
     compileSdk 33
 
     defaultConfig {
-        applicationId "io.github.VilniusITB.terminal"
+        applicationId "io.github.VilniusITB.BakalauraPraktiskais"
         minSdk 24
         targetSdk 33
         versionCode 1

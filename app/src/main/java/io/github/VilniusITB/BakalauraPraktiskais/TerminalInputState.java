@@ -1,4 +1,4 @@
-package io.github.VilniusITB.terminal;
+package io.github.VilniusITB.BakalauraPraktiskais;
 public enum TerminalInputState {
     AMOUNT(false),
     PIN(false),

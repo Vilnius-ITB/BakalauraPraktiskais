@@ -1,11 +1,11 @@
-package io.github.VilniusITB.terminal.dialogs;
+package io.github.VilniusITB.BakalauraPraktiskais.dialogs;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 
-import io.github.VilniusITB.terminal.R;
+import io.github.VilniusITB.BakalauraPraktiskais.R;
 
 public class UnsupportedDeviceDialog {
     private Activity activity;

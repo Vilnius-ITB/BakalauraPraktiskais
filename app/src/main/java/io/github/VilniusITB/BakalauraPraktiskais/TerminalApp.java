@@ -1,4 +1,4 @@
-package io.github.VilniusITB.terminal;
+package io.github.VilniusITB.BakalauraPraktiskais;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -22,8 +22,8 @@ import org.jetbrains.annotations.NotNull;
 import java.text.DecimalFormat;
 import java.util.logging.Logger;
 
-import io.github.VilniusITB.terminal.dialogs.PaymentRequestDialog;
-import io.github.VilniusITB.terminal.dialogs.UnsupportedDeviceDialog;
+import io.github.VilniusITB.BakalauraPraktiskais.dialogs.PaymentRequestDialog;
+import io.github.VilniusITB.BakalauraPraktiskais.dialogs.UnsupportedDeviceDialog;
 
 public class TerminalApp extends AppCompatActivity {
 

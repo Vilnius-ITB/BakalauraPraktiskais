@@ -1,4 +1,4 @@
-package io.github.VilniusITB.terminal.dialogs;
+package io.github.VilniusITB.BakalauraPraktiskais.dialogs;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -15,9 +15,8 @@ import android.widget.TextView;
 
 import com.pro100svitlo.creditCardNfcReader.enums.CardPaymentType;
 
-
-import io.github.VilniusITB.terminal.R;
-import io.github.VilniusITB.terminal.TerminalApp;
+import io.github.VilniusITB.BakalauraPraktiskais.TerminalApp;
+import io.github.VilniusITB.BakalauraPraktiskais.R;
 ;
 
 public class PaymentRequestDialog {

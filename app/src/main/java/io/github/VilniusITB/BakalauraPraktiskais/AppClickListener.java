@@ -1,4 +1,4 @@
-package io.github.VilniusITB.terminal;
+package io.github.VilniusITB.BakalauraPraktiskais;
 
 import android.os.Handler;
 import android.view.View;
