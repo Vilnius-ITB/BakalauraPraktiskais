@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 
 }
-rootProject.name = "Terminal"
+rootProject.name = "BakalauraPraktiskais"
 include ':app'
