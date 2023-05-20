@@ -16,44 +16,83 @@ import android.widget.TextView;
 import com.pro100svitlo.creditCardNfcReader.CardNfcAsyncTask;
 import com.pro100svitlo.creditCardNfcReader.enums.CardPaymentType;
 import com.pro100svitlo.creditCardNfcReader.utils.CardNfcUtils;
+import com.pro100svitlo.creditCardNfcReader.utils.EncryptionUtils;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
-import java.util.logging.Logger;
+import java.util.Random;
 
+import javax.crypto.SecretKey;
+
+import io.github.VilniusITB.BakalauraPraktiskais.data.TransactionsData;
+import io.github.VilniusITB.BakalauraPraktiskais.dialogs.EnableNFCDialog;
 import io.github.VilniusITB.BakalauraPraktiskais.dialogs.PaymentRequestDialog;
 import io.github.VilniusITB.BakalauraPraktiskais.dialogs.UnsupportedDeviceDialog;
+import io.github.VilniusITB.BakalauraPraktiskais.enums.TerminalInputState;
+import io.github.VilniusITB.BakalauraPraktiskais.enums.TerminalTransactionStatus;
+import io.github.VilniusITB.BakalauraPraktiskais.debugmenu.DebugMenu;
 
 public class TerminalApp extends AppCompatActivity {
 
     @SuppressLint("StaticFieldLeak")
     @NotNull protected static TerminalApp terminalApp;
 
+    public static TerminalApp getInstance() {
+        return terminalApp;
+    }
+
     protected TextView amountDisplay;
     protected ImageView bannerImage;
     protected StringBuilder amountBuilder = new StringBuilder();
-
-    protected Logger logger = Logger.getLogger("App Log");
-
     protected static TerminalInputState inputState = TerminalInputState.AMOUNT;
-
+    protected Button debugButton;
     protected NfcAdapter nfcAdapter;
     protected CardNfcUtils cardNfcUtils;
     protected CardNfcAsyncTask cardNfcAsyncTask;
+    protected TransactionsData transactionsData;
+    protected TransactionsDatastore transactionsDatastore;
     private mPOSNFCHandler mPOSNFCHandler;
-
+    protected SecretKey secretKey;
     private boolean intentFromCreate = false;
-
-    //Dialogs
     protected PaymentRequestDialog paymentRequestDialog;
+    private EnableNFCDialog enableNFCDialog;
     private AppClickListener appClickListener;
 
-    public CardNfcAsyncTask getCardNFCLibTask() {
-        return this.cardNfcAsyncTask;
+
+    public TransactionsData getTransactionsData(){return this.transactionsData;}
+    public TransactionsDatastore getTransactionsDatastore() {return this.transactionsDatastore;}
+    public PaymentRequestDialog getPaymentRequestDialog() {return this.paymentRequestDialog;}
+
+    /**
+     * Method is being used for generating a new security or secret key for the AES encryption method that is required for the creditCard library.
+     */
+    private void genSecretKey() {
+        try {
+            this.secretKey = EncryptionUtils.generateKey(this.generateRandomCharacters(),this.generateRandomCharacters());
+            if (cardNfcAsyncTask!=null) cardNfcAsyncTask.setEncryptionKey(this.secretKey);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-
+    /**
+     * Method used for creating random characters this is mainly used for generating for the encryption as key or salt
+     *
+     * @return String value of random characters
+     */
+    private String generateRandomCharacters() {
+        String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_-+=<>?{}";
+        int KEY_LENGTH = 64;
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(KEY_LENGTH);
+        for (int i = 0; i < KEY_LENGTH; i++) {
+            int randomIndex = random.nextInt(CHARACTERS.length());
+            char randomChar = CHARACTERS.charAt(randomIndex);
+            sb.append(randomChar);
+        }
+        return sb.toString();
+    }
     @Override
     /**
 
@@ -68,7 +107,7 @@ public class TerminalApp extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (inputState==null) inputState = TerminalInputState.AMOUNT;
-        terminalApp = this;
+        if (terminalApp==null) terminalApp = this;
         this.mPOSNFCHandler = new mPOSNFCHandler();
         this.nfcAdapter = NfcAdapter.getDefaultAdapter(this);
         this.setContentView(R.layout.activity_main);
@@ -78,14 +117,17 @@ public class TerminalApp extends AppCompatActivity {
         if (this.nfcAdapter==null) {
             inputState = TerminalInputState.NFC_DEVICE_ERROR;
             this.amountDisplay.setText("Invalid Device! (No NFC Found)");
-            new UnsupportedDeviceDialog(this).displayDialog();
+            new UnsupportedDeviceDialog(this).showDialog();
             return;
         }
+        this.enableNFCDialog = new EnableNFCDialog(this);
         if (!this.nfcAdapter.isEnabled()) {
             inputState = TerminalInputState.NFC_DEVICE_ERROR;
             this.amountDisplay.setText("NFC is not enabled! Please turn it on!");
-            return;
+            this.enableNFCDialog.showDialog();
         }
+        this.transactionsDatastore = new TransactionsDatastore(this);
+        this.genSecretKey();
         this.paymentRequestDialog = new PaymentRequestDialog(this);
         this.cardNfcUtils = new CardNfcUtils(this);
         this.intentFromCreate = true;
@@ -125,6 +167,14 @@ public class TerminalApp extends AppCompatActivity {
                 updateAmountDisplay();
             }
         });
+        this.debugButton = this.findViewById(R.id.main_dgr_menu);
+        this.debugButton.setOnClickListener(v->{
+            Intent intent = new Intent(TerminalApp.this, DebugMenu.class);
+            startActivity(intent);
+        });
+
+        this.transactionsData = new TransactionsData(this);
+        DebugLogger.log("App is ready to go!");
     }
 
     /**
@@ -146,7 +196,7 @@ public class TerminalApp extends AppCompatActivity {
      * This method updates main display text message
      */
     protected void updateAmountDisplay() {
-        logger.info(getDebugTerminalState());
+        DebugLogger.log(getDebugTerminalState());
         String amountString = amountBuilder.toString();
         if (inputState.equals(TerminalInputState.PIN)) {
             String maskedPIN = "";
@@ -155,13 +205,11 @@ public class TerminalApp extends AppCompatActivity {
             return;
         }
         if (amountString.isEmpty()) {
-            logger.info("amount Display was reporting to be empty resenting");
+            DebugLogger.log("amount Display was reporting to be empty resenting");
             amountDisplay.setText("€0.00");
         } else {
             double amount = Double.parseDouble(amountString) / 100.0;
             DecimalFormat decimalFormat = new DecimalFormat("€###0.00");
-            this.logger.info(String.valueOf(amount));
-            this.logger.info(decimalFormat.format(amount));
             amountDisplay.setText(decimalFormat.format(amount));
         }
     }
@@ -170,7 +218,10 @@ public class TerminalApp extends AppCompatActivity {
      * Resets everything back to default as like the app was restarted
      */
     protected void reset() {
-        this.logger.info("Calling Reset...");
+        DebugLogger.log("Calling Reset...");
+        this.genSecretKey();
+        this.transactionsData = new TransactionsData(this);
+        if (this.enableNFCDialog.getAlertDialog().isShowing()) this.enableNFCDialog.hideDialog();
         if (this.nfcAdapter==null) {
             inputState = TerminalInputState.NFC_DEVICE_ERROR;
             amountDisplay.setText("Invalid Device! (No NFC Found)");
@@ -179,8 +230,11 @@ public class TerminalApp extends AppCompatActivity {
         if (!this.nfcAdapter.isEnabled()) {
             inputState = TerminalInputState.NFC_DEVICE_ERROR;
             amountDisplay.setText("NFC is not enabled! Please turn it on!");
+            if (!this.enableNFCDialog.getAlertDialog().isShowing()) this.enableNFCDialog.showDialog();
             return;
         }
+        this.debugButton.setVisibility(View.VISIBLE);
+        this.debugButton.setEnabled(true);
         this.mPOSNFCHandler.reset();
         if (this.paymentRequestDialog.isShowing()) this.paymentRequestDialog.hideDialog();
         this.bannerImage.setImageResource(R.drawable.pay);
@@ -190,25 +244,21 @@ public class TerminalApp extends AppCompatActivity {
     }
 
     /**
-
      Enables the NFC dispatcher and logs the action to the logger.
      If the cardNfcUtils instance is not null, it calls its enableDispatch() method to enable NFC dispatching.
      */
-
     public void enableNFCDispatcher(){
-        this.logger.info("[NFC] Enabling NFC Dispatcher");
+        DebugLogger.log("[NFC] Enabling NFC Dispatcher");
         if (this.cardNfcUtils!=null) this.cardNfcUtils.enableDispatch();
     }
 
     /**
-
      Disables the NFC dispatcher to stop handling NFC intents.
      Also logs a message indicating that the NFC dispatcher is being disabled.
      If the cardNfcUtils object is not null, it calls the disableDispatch method on it.
      */
-
     public void disableNFCDispatcher(){
-        this.logger.info("[NFC] Disabling NFC Dispatcher");
+        DebugLogger.log("[NFC] Disabling NFC Dispatcher");
         if (this.cardNfcUtils!=null) this.cardNfcUtils.disableDispatch();
     }
 
@@ -223,6 +273,16 @@ public class TerminalApp extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         this.intentFromCreate = false;
+        if (this.nfcAdapter!=null) {
+            if (!this.nfcAdapter.isEnabled()) {
+                if (!this.enableNFCDialog.getAlertDialog().isShowing()) this.enableNFCDialog.showDialog();
+            } else {
+                if (this.enableNFCDialog.getAlertDialog().isShowing()) {
+                    this.enableNFCDialog.hideDialog();
+                    this.reset();
+                }
+            }
+        }
         if (this.paymentRequestDialog!=null) {
             if (this.paymentRequestDialog.isShowing()) {
                 if (!this.mPOSNFCHandler.isCardFinishedReading())
@@ -252,18 +312,8 @@ public class TerminalApp extends AppCompatActivity {
         }
     }
 
-    /**
-
-     Returns the instance of PaymentRequestDialog for this TerminalApp.
-     @return PaymentRequestDialog instance of this TerminalApp
-     */
-
-    public PaymentRequestDialog getPaymentRequestDialog() {
-        return this.paymentRequestDialog;
-    }
 
     /**
-
      Cancels the pre-card scan process by hiding the payment request dialog, setting the input state to payment failure,
      displaying a payment cancelled message on the amount display, and resetting the payment terminal after 2 seconds.
      This method is only applicable if the input state is NFC and the payment request dialog is showing.
@@ -275,6 +325,8 @@ public class TerminalApp extends AppCompatActivity {
         this.paymentRequestDialog.hideDialog();
         inputState = TerminalInputState.PAYMENT_FAILURE;
         this.amountDisplay.setText("Payment cancelled");
+        TerminalApp.terminalApp.getTransactionsData().setStatus(TerminalTransactionStatus.CANCELED);
+        TerminalApp.terminalApp.getTransactionsDatastore().addTransactionToDB(TerminalApp.terminalApp.getTransactionsData());
         new Handler().postDelayed(this::reset,2000);
     }
 
@@ -290,7 +342,9 @@ public class TerminalApp extends AppCompatActivity {
     void progressPayment(CardPaymentType type, String exp) {
         if (!inputState.equals(TerminalInputState.NFC)) return;
         if (!this.paymentRequestDialog.isShowing()) return;
-        if (!AppClickListener.isCardValid(exp)) this.paymentRequestDialog.displayCardExp();
+        if (!AppClickListener.isCardValid(exp)) {
+            this.paymentRequestDialog.displayCardExp();
+        }
 
         new Handler().postDelayed(()->{
             if (this.paymentRequestDialog.isShowing()) this.paymentRequestDialog.hideDialog();
@@ -317,7 +371,7 @@ public class TerminalApp extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (this.nfcAdapter!=null&&nfcAdapter.isEnabled()) {
-            this.cardNfcAsyncTask = new CardNfcAsyncTask.Builder(this.mPOSNFCHandler,intent,this.intentFromCreate).build();
+            this.cardNfcAsyncTask = new CardNfcAsyncTask.Builder(this.mPOSNFCHandler,intent,this.secretKey,this.intentFromCreate).build();
         }
     }
 

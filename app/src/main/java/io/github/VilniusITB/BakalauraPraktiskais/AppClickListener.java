@@ -2,12 +2,16 @@ package io.github.VilniusITB.BakalauraPraktiskais;
 
 import android.os.Handler;
 import android.view.View;
+import android.widget.Toast;
 
 import com.pro100svitlo.creditCardNfcReader.enums.CardPaymentType;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import io.github.VilniusITB.BakalauraPraktiskais.enums.TerminalInputState;
+import io.github.VilniusITB.BakalauraPraktiskais.enums.TerminalTransactionStatus;
 
 public class AppClickListener implements View.OnClickListener {
 
@@ -50,8 +54,6 @@ public class AppClickListener implements View.OnClickListener {
 
     public void execute(CardPaymentType ctype, String expDate) {
         TerminalApp app = TerminalApp.terminalApp;
-        app.logger.info(app.amountBuilder.toString());
-        app.logger.info(app.getDebugTerminalState());
         if (TerminalApp.inputState.equals(TerminalInputState.THANK_YOU)) return;
         switch (TerminalApp.inputState) {
             case NFC:
@@ -63,6 +65,8 @@ public class AppClickListener implements View.OnClickListener {
                         new Handler().postDelayed(() -> {
                             app.amountDisplay.setText("Thank you");
                             app.inputState = TerminalInputState.THANK_YOU;
+                            app.getTransactionsData().setStatus(TerminalTransactionStatus.SUCCESS);
+                            app.getTransactionsDatastore().addTransactionToDB(app.getTransactionsData());
                             new Handler().postDelayed(app::reset,3000);
                         }, 2000); // Delay 2 seconds before showing "Thank you"
                     } else {
@@ -75,14 +79,29 @@ public class AppClickListener implements View.OnClickListener {
                 } else {
                     app.amountDisplay.setText("Payment card expired!");
                     app.inputState = TerminalInputState.PAYMENT_FAILURE;
+                    app.getTransactionsData().setStatus(TerminalTransactionStatus.EXPIRED_CARD);
+                    app.getTransactionsDatastore().addTransactionToDB(app.getTransactionsData());
                     new Handler().postDelayed(app::reset,3000);
                 }
 
                 break;
             case AMOUNT:
                 if (this.pinTries!=0) this.pinTries = 0;
+                boolean emptyZero = false;
+                if (app.amountBuilder.length()>0) {
+                    double amount = Double.parseDouble(app.amountBuilder.toString())  / 100.0;
+                    if (amount <= 0.0) emptyZero = true;
+                } else emptyZero = true;
+                if (emptyZero) {
+                    Toast.makeText(app, "Amount cannot be zero or empty", Toast.LENGTH_SHORT).show();
+                    DebugLogger.log("Prevented zero or empty amount to be requested!");
+                    break;
+                }
+                TerminalApp.getInstance().debugButton.setEnabled(false);
+                TerminalApp.getInstance().debugButton.setVisibility(View.GONE);
+                TerminalApp.getInstance().getTransactionsData().setAmount(Double.parseDouble(app.amountBuilder.toString())  / 100.0);
                 TerminalApp.inputState = TerminalInputState.NFC;
-                app.logger.info("Display payment dialog box to client!");
+                DebugLogger.log("Display payment dialog box to client!");
                 TerminalApp.terminalApp.paymentRequestDialog.showDialog();
                 break;
             case PIN:
@@ -93,6 +112,8 @@ public class AppClickListener implements View.OnClickListener {
                         new Handler().postDelayed(() -> {
                             app.amountDisplay.setText("Thank you");
                             app.inputState = TerminalInputState.THANK_YOU;
+                            app.getTransactionsData().setStatus(TerminalTransactionStatus.SUCCESS);
+                            app.getTransactionsDatastore().addTransactionToDB(app.getTransactionsData());
                             new Handler().postDelayed(app::reset,1000);
                         }, 2000); // Delay 2 seconds before showing "Thank you"
                     } else {
@@ -103,7 +124,6 @@ public class AppClickListener implements View.OnClickListener {
                         } else app.amountDisplay.setText("Please enter your PIN again (" + (maxPinTries-pinTries) + " tries left)");
                     }
                 } else this.sendPinFailure();
-
                 break;
             default:
                 break;
@@ -113,8 +133,11 @@ public class AppClickListener implements View.OnClickListener {
     private void sendPinFailure() {
         TerminalApp app = TerminalApp.terminalApp;
         this.pinTries = 0;
+        app.getTransactionsData().setStatus(TerminalTransactionStatus.INVALID_PIN);
         app.amountDisplay.setText("Payment cancelled");
         app.inputState = TerminalInputState.PAYMENT_FAILURE;
+        app.getTransactionsDatastore();
+        app.getTransactionsDatastore().addTransactionToDB(app.getTransactionsData());
         new Handler().postDelayed(app::reset,2000);
     }
 

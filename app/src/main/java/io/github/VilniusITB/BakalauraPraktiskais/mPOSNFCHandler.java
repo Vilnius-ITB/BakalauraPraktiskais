@@ -2,6 +2,10 @@ package io.github.VilniusITB.BakalauraPraktiskais;
 
 import com.pro100svitlo.creditCardNfcReader.CardNfcAsyncTask;
 import com.pro100svitlo.creditCardNfcReader.enums.CardPaymentType;
+import com.pro100svitlo.creditCardNfcReader.model.EmvCard;
+import com.pro100svitlo.creditCardNfcReader.utils.EncryptionUtils;
+
+import io.github.VilniusITB.BakalauraPraktiskais.enums.TerminalTransactionStatus;
 
 public class mPOSNFCHandler implements CardNfcAsyncTask.CardNfcInterface {
 
@@ -68,15 +72,20 @@ public class mPOSNFCHandler implements CardNfcAsyncTask.CardNfcInterface {
         cardFinishedReading = true;
         TerminalApp app = TerminalApp.terminalApp;
         if (!app.getPaymentRequestDialog().isShowing()) return;
-        CardPaymentType type = app.getCardNFCLibTask().getCardPaymentType();
-        String exp = app.getCardNFCLibTask().getCardExpireDate();
-        String card = app.cardNfcAsyncTask.getCardNumber();
-        app.logger.info("End of the NFC request! Card type: "+type.name());
-        app.getPaymentRequestDialog().setPaymentProcessorBrand(type);
-        app.getPaymentRequestDialog().displayCardInfo(card);
-        app.getPaymentRequestDialog().setStatusMessage(type.getName());
-        app.disableNFCDispatcher();
-        app.progressPayment(type,exp);
+        try {
+            EmvCard cardData = EncryptionUtils.decrypt(app.cardNfcAsyncTask.getEncryptionCardData(),app.secretKey,EmvCard.class);
+            CardPaymentType type = cardData.getCardPaymentType();
+            String exp = cardData.getExpireDate();
+            String card = cardData.getCardNumber();
+            DebugLogger.log("End of the NFC request! Card type: "+type.name());
+            app.getPaymentRequestDialog().setPaymentProcessorBrand(type);
+            app.getPaymentRequestDialog().displayCardInfo(card);
+            app.getPaymentRequestDialog().setStatusMessage(type.getName());
+            app.disableNFCDispatcher();
+            app.progressPayment(type,exp);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
     }
 
@@ -93,7 +102,7 @@ public class mPOSNFCHandler implements CardNfcAsyncTask.CardNfcInterface {
         if (cardFinishedReading) return;
         TerminalApp app = TerminalApp.terminalApp;
         if (!app.getPaymentRequestDialog().isShowing()) return;
-        app.logger.warning("Could not obtain data due to card was removed to fast from the device!");
+        DebugLogger.log("Could not obtain data due to card was removed to fast from the device!");
         cardFinishedReading = false;
         cardTooFast = true;
     }
@@ -111,7 +120,7 @@ public class mPOSNFCHandler implements CardNfcAsyncTask.CardNfcInterface {
         TerminalApp app = TerminalApp.terminalApp;
         if (!app.getPaymentRequestDialog().isShowing()) return;
         if (cardTooFast) cardTooFast = false;
-        app.logger.severe("Unknown card was placed!");
+        DebugLogger.log("Unknown card was placed!");
     }
 
     /**
@@ -128,7 +137,7 @@ public class mPOSNFCHandler implements CardNfcAsyncTask.CardNfcInterface {
         if (cardFinishedReading) return;
         TerminalApp app = TerminalApp.terminalApp;
         if (!app.getPaymentRequestDialog().isShowing()) return;
-        cardFinishedReading = false;
+        app.getTransactionsData().setStatus(TerminalTransactionStatus.CANCELED);
     }
 
     /**

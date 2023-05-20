@@ -15,16 +15,13 @@ import android.widget.TextView;
 
 import com.pro100svitlo.creditCardNfcReader.enums.CardPaymentType;
 
-import io.github.VilniusITB.BakalauraPraktiskais.TerminalApp;
-import io.github.VilniusITB.BakalauraPraktiskais.R;
-;
 
-public class PaymentRequestDialog {
-    private Activity activity;
-    private AlertDialog alertDialog;
+import io.github.VilniusITB.BakalauraPraktiskais.R;
+import io.github.VilniusITB.BakalauraPraktiskais.TerminalApp;
+
+public class PaymentRequestDialog extends AbstractDialog {
     private AudioManager audioManager;
     private int originalVolume;
-    private View iv;
     private TerminalApp app;
 
     /**
@@ -34,24 +31,16 @@ public class PaymentRequestDialog {
      */
 
     public PaymentRequestDialog(TerminalApp app) {
-        this.activity = app;
+        super(app,R.layout.payment_request,false);
         this.app = app;
-        AlertDialog.Builder b = new AlertDialog.Builder(this.activity);
-        LayoutInflater inflater = this.activity.getLayoutInflater();
-        this.iv = inflater.inflate(R.layout.payment_request,null);
-        b.setView(this.iv);
-        b.setCancelable(false);
-        this.alertDialog = b.create();
     }
 
     /**
-
      Checks if the payment request dialog is currently being displayed on the screen.
      @return true if the payment request dialog is showing, false otherwise.
      */
-
     public boolean isShowing() {
-        return this.alertDialog.isShowing();
+        return this.getAlertDialog().isShowing();
     }
 
     /**
@@ -63,13 +52,13 @@ public class PaymentRequestDialog {
      */
 
     public void showDialog() {
-        this.alertDialog.show();
-        this.alertDialog.getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,WindowManager.LayoutParams.FLAG_SECURE); //Disables screenshot and disabled or make the screen-share blank when the app is running!
+        this.getAlertDialog().show();
+        this.getAlertDialog().getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,WindowManager.LayoutParams.FLAG_SECURE); //Disables screenshot and disabled or make the screen-share blank when the app is running!
         this.app.enableNFCDispatcher();
-        this.iv.findViewById(R.id.cancel_action_button).setOnClickListener(v -> this.app.cancelPreCardScan());
-        ImageView i = this.iv.findViewById(R.id.paymentImgBox);
-        TextView t = this.iv.findViewById(R.id.paymentStatusText);
-        TextView p = this.iv.findViewById(R.id.cardInfo);
+        this.getView().findViewById(R.id.cancel_action_button).setOnClickListener(v -> this.app.cancelPreCardScan());
+        ImageView i = this.getView().findViewById(R.id.paymentImgBox);
+        TextView t = this.getView().findViewById(R.id.paymentStatusText);
+        TextView p = this.getView().findViewById(R.id.cardInfo);
         i.setImageResource(R.drawable.nfc);
         t.setText("Please scan your card!");
         p.setText("XXXX-XXXX-XXXX-XXXX");
@@ -84,8 +73,8 @@ public class PaymentRequestDialog {
      */
 
     public void hideCancelButton() {
-        if (!this.alertDialog.isShowing()) return;
-        TextView p = this.iv.findViewById(R.id.cardInfo);
+        if (!this.getAlertDialog().isShowing()) return;
+        TextView p = this.getView().findViewById(R.id.cardInfo);
         p.setText("XXXX-XXXX-XXXX-XXXX");
         p.setVisibility(View.GONE);
         this.setPreCancelButton(false);
@@ -97,7 +86,7 @@ public class PaymentRequestDialog {
      */
 
     public void hideDialog() {
-        this.alertDialog.dismiss();
+        this.getAlertDialog().dismiss();
     }
 
     /**
@@ -107,8 +96,8 @@ public class PaymentRequestDialog {
      */
 
     public void setStatusMessage(String message) {
-        if (!this.alertDialog.isShowing()) return;
-        TextView t = this.iv.findViewById(R.id.paymentStatusText);
+        if (!this.getAlertDialog().isShowing()) return;
+        TextView t = this.getView().findViewById(R.id.paymentStatusText);
         t.setText(message);
     }
 
@@ -118,8 +107,8 @@ public class PaymentRequestDialog {
      */
 
     public void resetImageBox() {
-        if (!this.alertDialog.isShowing()) return;
-        ImageView i = this.iv.findViewById(R.id.paymentImgBox);
+        if (!this.getAlertDialog().isShowing()) return;
+        ImageView i = this.getView().findViewById(R.id.paymentImgBox);
         i.setImageResource(R.drawable.nfc);
     }
 
@@ -130,8 +119,8 @@ public class PaymentRequestDialog {
      */
 
     public void displayCardInfo(String cardinfo) {
-        if (!this.alertDialog.isShowing()) return;
-        TextView t = this.iv.findViewById(R.id.cardInfo);
+        if (!this.getAlertDialog().isShowing()) return;
+        TextView t = this.getView().findViewById(R.id.cardInfo);
         t.setVisibility(View.VISIBLE);
         String a = cardinfo.substring(cardinfo.length() - 4);
         t.setText("XXXX-XXXX-XXXX-" + a);
@@ -144,9 +133,9 @@ public class PaymentRequestDialog {
      */
 
     public void setPaymentProcessorBrand(CardPaymentType type) {
-        if (!this.alertDialog.isShowing()) return;
-        ImageView i = this.iv.findViewById(R.id.paymentImgBox);
-        ImageView b = this.activity.findViewById(R.id.bannerImage);
+        if (!this.getAlertDialog().isShowing()) return;
+        ImageView i = this.getView().findViewById(R.id.paymentImgBox);
+        ImageView b = this.getActivity().findViewById(R.id.bannerImage);
         if (type.equals(CardPaymentType.VISA)) {
             i.setImageResource(R.drawable.visa2);
             b.setImageResource(R.drawable.visa2);
@@ -169,10 +158,10 @@ public class PaymentRequestDialog {
      */
 
     public void displayTooFastError() {
-        if (!this.alertDialog.isShowing()) return;
-        Button b = this.iv.findViewById(R.id.cancel_action_button);
-        ImageView i = this.iv.findViewById(R.id.paymentImgBox);
-        TextView t = this.iv.findViewById(R.id.paymentStatusText);
+        if (!this.getAlertDialog().isShowing()) return;
+        Button b = this.getView().findViewById(R.id.cancel_action_button);
+        ImageView i = this.getView().findViewById(R.id.paymentImgBox);
+        TextView t = this.getView().findViewById(R.id.paymentStatusText);
         i.setImageResource(R.drawable.error);
         t.setText("Too Fast! Try Again!");
         this.setPreCancelButton(true);
@@ -187,9 +176,9 @@ public class PaymentRequestDialog {
      */
 
     public void displayUnknownCard() {
-        if (!this.alertDialog.isShowing()) return;
-        ImageView i = this.iv.findViewById(R.id.paymentImgBox);
-        TextView t = this.iv.findViewById(R.id.paymentStatusText);
+        if (!this.getAlertDialog().isShowing()) return;
+        ImageView i = this.getView().findViewById(R.id.paymentImgBox);
+        TextView t = this.getView().findViewById(R.id.paymentStatusText);
         i.setImageResource(R.drawable.invcard);
         t.setText("Invalid Card");
         this.setPreCancelButton(true);
@@ -205,10 +194,10 @@ public class PaymentRequestDialog {
      */
 
     public void displayCardExp() {
-        if (!this.alertDialog.isShowing()) return;
-        ImageView i = this.iv.findViewById(R.id.paymentImgBox);
-        ImageView b = this.activity.findViewById(R.id.bannerImage);
-        TextView t = this.iv.findViewById(R.id.paymentStatusText);
+        if (!this.getAlertDialog().isShowing()) return;
+        ImageView i = this.getView().findViewById(R.id.paymentImgBox);
+        ImageView b = this.getActivity().findViewById(R.id.bannerImage);
+        TextView t = this.getView().findViewById(R.id.paymentStatusText);
         i.setImageResource(R.drawable.invcard);
         b.setImageResource(R.drawable.invcard);
         t.setText("Expired Payment Card");
@@ -225,14 +214,14 @@ public class PaymentRequestDialog {
      */
 
     public void playBeep() {
-        if (!this.alertDialog.isShowing()) return;
-        MediaPlayer m = MediaPlayer.create(this.activity,R.raw.beep);
+        if (!this.getAlertDialog().isShowing()) return;
+        MediaPlayer m = MediaPlayer.create(this.getActivity(),R.raw.beep);
         m.setAudioAttributes(new AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_ALARM)
                 .build());
         m.setOnPreparedListener(mp -> {
-            audioManager = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+            audioManager = (AudioManager) this.getActivity().getSystemService(Context.AUDIO_SERVICE);
             originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
             int targetVolume = (int) (maxVolume * 0.8);
@@ -255,8 +244,8 @@ public class PaymentRequestDialog {
      */
 
     private void setPreCancelButton(boolean state) {
-        if (!this.alertDialog.isShowing()) return;
-        Button b = this.iv.findViewById(R.id.cancel_action_button);
+        if (!this.getAlertDialog().isShowing()) return;
+        Button b = this.getView().findViewById(R.id.cancel_action_button);
         if (state&&!b.isEnabled()) {
             b.setEnabled(true);
             b.setVisibility(View.VISIBLE);

@@ -13,5 +13,6 @@ dependencyResolutionManagement {
     }
 
 }
-rootProject.name = "BakalauraPraktiskais"
+rootProject.name = "Terminal"
 include ':app'
+include ':creditCardNFCReader'

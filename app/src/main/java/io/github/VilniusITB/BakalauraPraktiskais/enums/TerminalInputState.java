@@ -1,4 +1,5 @@
-package io.github.VilniusITB.BakalauraPraktiskais;
+package io.github.VilniusITB.BakalauraPraktiskais.enums;
+
 public enum TerminalInputState {
     AMOUNT(false),
     PIN(false),
@@ -6,8 +7,8 @@ public enum TerminalInputState {
     NFC_DEVICE_ERROR(true),
     PAYMENT_SUCCESSFUL(true),
     PAYMENT_FAILURE(true),
-    CONFIRM_AMOUNT(false),
-    THANK_YOU(true);
+    THANK_YOU(true),
+    DEBUG_MENU(true);
     private final boolean disableButtons;
 
     /**
